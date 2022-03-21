@@ -9,6 +9,7 @@ import os, django
 
 from dictionary_bot.configs import configs
 from dictionary_bot.constans import SUPPORTED_LANGUAGES
+from dictionary_bot.utils import get_main_word_keyboard
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "dictionary_app.settings")
 django.setup()
@@ -108,10 +109,19 @@ def button(update: Update, context: CallbackContext):
         query.message.reply_to_message.delete()
         query.message.delete()
     elif command == 'change_translation':
+        translator = Translator()
+
+        original_word = query.message.reply_to_message.text
+        translated_original_language = translator.detect(original_word).lang
+
+        translated_word = query.message.text
+        translated_language = translator.detect(translated_word).lang
 
         lang_buttons = []
 
         for lang in SUPPORTED_LANGUAGES:
+            if translated_language == lang or translated_original_language == lang:
+                continue
             lang_buttons.append(InlineKeyboardButton(lang, callback_data=f'change_language:{lang}'))
 
         lang_keyboard = InlineKeyboardMarkup([lang_buttons])
@@ -136,10 +146,9 @@ def button(update: Update, context: CallbackContext):
             )
         else:
             query.edit_message_text(
-               text=translated_word
+                text=translated_word,
+                reply_markup=get_main_word_keyboard
             )
-
-
 
 
 def message_dict(update: Update, context: CallbackContext):
@@ -158,16 +167,10 @@ def message_dict(update: Update, context: CallbackContext):
 
     text_obj = translator.translate(word, dest=dest)
 
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton('Добавить слово и перевод в словарь', callback_data=f'add_word')],
-        [InlineKeyboardButton('Удалить перевод и слово', callback_data=f'remove_translation')],
-        [InlineKeyboardButton('Выбрать другой перевод', callback_data=f'change_translation')]
-    ])
-
     context.bot.send_message(
         chat_id=update.message.chat_id,
         text=text_obj.text,
-        reply_markup=keyboard,
+        reply_markup=get_main_word_keyboard,
         reply_to_message_id=update.message.message_id,
     )
 
