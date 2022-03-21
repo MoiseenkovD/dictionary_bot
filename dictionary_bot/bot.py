@@ -8,6 +8,7 @@ from django.utils import timezone as tz
 import os, django
 
 from dictionary_bot.configs import configs
+from dictionary_bot.constans import SUPPORTED_LANGUAGES
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "dictionary_app.settings")
 django.setup()
@@ -40,10 +41,6 @@ def my_dictionary(update: Update, context: CallbackContext):
         chat_id=update.message.chat_id,
     )
 
-    # dictionary = Dictionary.objects.filter(
-    #     user=user
-    # )
-
     dictionary = Dictionary.objects.filter(
         user=user
     ).order_by('original_word')
@@ -69,7 +66,7 @@ def button(update: Update, context: CallbackContext):
 
     query.answer()
 
-    command = query.data
+    command, *payload = query.data.split(':')
 
     user = Users.objects.get(
         chat_id=query.message.chat_id,
@@ -110,6 +107,39 @@ def button(update: Update, context: CallbackContext):
     elif command == 'remove_translation':
         query.message.reply_to_message.delete()
         query.message.delete()
+    elif command == 'change_translation':
+
+        lang_buttons = []
+
+        for lang in SUPPORTED_LANGUAGES:
+            lang_buttons.append(InlineKeyboardButton(lang, callback_data=f'change_language:{lang}'))
+
+        lang_keyboard = InlineKeyboardMarkup([lang_buttons])
+
+        query.edit_message_text(
+            text=query.message.text,
+            reply_markup=lang_keyboard
+        )
+    elif command == 'change_language':
+        translator = Translator()
+
+        word = query.message.text
+
+        lang = translator.detect(word).lang
+
+        translated_word = translator.translate(word, dest=payload[0]).text
+
+        if lang == payload[0]:
+            context.bot.send_message(
+                chat_id=query.message.chat_id,
+                text='ошибка!'
+            )
+        else:
+            query.edit_message_text(
+               text=translated_word
+            )
+
+
 
 
 def message_dict(update: Update, context: CallbackContext):
