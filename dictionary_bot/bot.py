@@ -1,9 +1,9 @@
 import configs as configs
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.ext import CallbackContext, CommandHandler, Updater, CallbackQueryHandler, MessageHandler, Filters
 from googletrans import Translator
-import re
 from django.utils import timezone as tz
+
 
 import os, django
 
@@ -34,7 +34,37 @@ def start(update: Update, context: CallbackContext):
     )
 
 
-def new_word(update: Update, context: CallbackContext):
+def my_dictionary(update: Update, context: CallbackContext):
+
+    user = Users.objects.get(
+        chat_id=update.message.chat_id,
+    )
+
+    # dictionary = Dictionary.objects.filter(
+    #     user=user
+    # )
+
+    dictionary = Dictionary.objects.filter(
+        user=user
+    ).order_by('original_word')
+
+    words = []
+
+    for word in dictionary:
+        original_word = word.original_word
+        translated_word = word.translated_word
+        words.append(f'{original_word} - {translated_word} ')
+
+    words_str = '\n'.join(words)
+
+    context.bot.send_message(
+        chat_id=update.message.chat_id,
+        text=f'<strong>Ваш словарь:</strong>\n{words_str}',
+        parse_mode=ParseMode.HTML
+    )
+
+
+def button(update: Update, context: CallbackContext):
     query = update.callback_query
 
     query.answer()
@@ -49,14 +79,20 @@ def new_word(update: Update, context: CallbackContext):
         translator = Translator()
 
         original_word = query.message.reply_to_message.text
+        original_word_lang_code = translator.detect(original_word).lang
+
         translated_word = query.message.text
+        translated_word_lang_code = translator.detect(translated_word).lang
+
+        if 'ru' in translated_word_lang_code:
+            translated_word_lang_code = 'ru'
 
         dictionary = Dictionary.objects.get_or_create(
             user=user,
             original_word=original_word,
-            original_word_lang_code=translator.detect(original_word).lang,
             translated_word=translated_word,
-            translated_word_lang_code=translator.detect(translated_word).lang,
+            original_word_lang_code=original_word_lang_code,
+            translated_word_lang_code=translated_word_lang_code,
         )[0]
 
         if dictionary.created_at is None:
@@ -66,16 +102,14 @@ def new_word(update: Update, context: CallbackContext):
 
         dictionary.save()
 
-        query.edit_message_text(text=query.message.text)
-
-    elif command == 'my_dict':
-        user = Users.objects.get(
-            chat_id=query.message.chat_id
+        query.edit_message_text(
+            text=f'<strong>Перевод: {query.message.text}</strong>',
+            parse_mode=ParseMode.HTML
         )
 
-        dictionary = Dictionary.objects.filter(
-            user=user,
-        )
+    elif command == 'remove_translation':
+        query.message.reply_to_message.delete()
+        query.message.delete()
 
 
 def message_dict(update: Update, context: CallbackContext):
@@ -95,7 +129,9 @@ def message_dict(update: Update, context: CallbackContext):
     text_obj = translator.translate(word, dest=dest)
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton('Добавить слово и перевод в словарь', callback_data=f'add_word')]
+        [InlineKeyboardButton('Добавить слово и перевод в словарь', callback_data=f'add_word')],
+        [InlineKeyboardButton('Удалить перевод и слово', callback_data=f'remove_translation')],
+        [InlineKeyboardButton('Выбрать другой перевод', callback_data=f'change_translation')]
     ])
 
     context.bot.send_message(
@@ -108,11 +144,13 @@ def message_dict(update: Update, context: CallbackContext):
 
 def main():
     start_handler = CommandHandler('start', start)
-    new_word_handler = CallbackQueryHandler(new_word)
+    dictionary_handler = CommandHandler('my_dictionary', my_dictionary)
+    button_handler = CallbackQueryHandler(button)
     add_word_to_dict_handler = MessageHandler(Filters.text & ~Filters.command, message_dict)
 
     bot.dispatcher.add_handler(add_word_to_dict_handler)
-    bot.dispatcher.add_handler(new_word_handler)
+    bot.dispatcher.add_handler(dictionary_handler)
+    bot.dispatcher.add_handler(button_handler)
     bot.dispatcher.add_handler(start_handler)
 
     bot.start_polling()
