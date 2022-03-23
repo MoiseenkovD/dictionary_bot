@@ -108,7 +108,7 @@ def button(update: Update, context: CallbackContext):
     elif command == 'remove_translation':
         query.message.reply_to_message.delete()
         query.message.delete()
-    elif command == 'change_translation':
+    elif command == 'change_lang':
         translator = Translator()
 
         original_word = query.message.reply_to_message.text
@@ -122,14 +122,50 @@ def button(update: Update, context: CallbackContext):
         for lang in SUPPORTED_LANGUAGES:
             if translated_language == lang or translated_original_language == lang:
                 continue
-            lang_buttons.append(InlineKeyboardButton(lang, callback_data=f'change_language:{lang}'))
+            lang_buttons.append([InlineKeyboardButton(lang, callback_data=f'change_language:{lang}')])
 
-        lang_keyboard = InlineKeyboardMarkup([lang_buttons])
+        lang_buttons.append([InlineKeyboardButton('Назад', callback_data=f'to_back')])
+
+        lang_keyboard = InlineKeyboardMarkup(lang_buttons)
 
         query.edit_message_text(
             text=query.message.text,
             reply_markup=lang_keyboard
         )
+    elif command == 'change_translation':
+        translator = Translator()
+
+        word = query.message.reply_to_message.text
+
+        lang_code = translator.detect(word).lang
+
+        if lang_code == 'en':
+            lang_code = 'ru'
+        else:
+            lang_code = 'en'
+
+        translated_word = translator.translate(word, dest=lang_code).extra_data['all-translations']
+
+        list_of_more_words = []
+
+        for translation_list in translated_word:
+            translation_type = translation_list[0]
+            list_of_more_words.append(f'\n — <strong>{translation_type}</strong>: —\n')
+            for word in translation_list[1]:
+                list_of_more_words.append(f'{word}')
+
+        words_str = '\n'.join(list_of_more_words)
+
+        buttons = []
+        buttons.append([InlineKeyboardButton('Назад', callback_data=f'to_back')])
+        keyboard = InlineKeyboardMarkup(buttons)
+
+        query.edit_message_text(
+            text=words_str,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML
+        )
+
     elif command == 'change_language':
         translator = Translator()
 
@@ -139,16 +175,31 @@ def button(update: Update, context: CallbackContext):
 
         translated_word = translator.translate(word, dest=payload[0]).text
 
-        if lang == payload[0]:
-            context.bot.send_message(
-                chat_id=query.message.chat_id,
-                text='ошибка!'
-            )
+        query.edit_message_text(
+            text=translated_word,
+            reply_markup=get_main_word_keyboard('')
+        )
+    elif command == 'to_back':
+
+        translator = Translator()
+
+        word = query.message.reply_to_message.text
+
+        lang = translator.detect(word).lang
+
+        dest = 'ru'
+
+        if 'ru' in lang:
+            dest = 'en'
         else:
-            query.edit_message_text(
-                text=translated_word,
-                reply_markup=get_main_word_keyboard
-            )
+            dest = 'ru'
+
+        translated_word = translator.translate(word, dest=dest).text
+
+        query.edit_message_text(
+            text=translated_word,
+            reply_markup=get_main_word_keyboard('')
+        )
 
 
 def message_dict(update: Update, context: CallbackContext):
@@ -170,7 +221,7 @@ def message_dict(update: Update, context: CallbackContext):
     context.bot.send_message(
         chat_id=update.message.chat_id,
         text=text_obj.text,
-        reply_markup=get_main_word_keyboard,
+        reply_markup=get_main_word_keyboard(''),
         reply_to_message_id=update.message.message_id,
     )
 
