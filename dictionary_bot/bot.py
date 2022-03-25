@@ -1,9 +1,7 @@
-import configs as configs
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+import enum
+
+from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler, Updater, CallbackQueryHandler, MessageHandler, Filters
-from googletrans import Translator
-import re
-from django.utils import timezone as tz
 
 import os, django
 
@@ -12,107 +10,83 @@ from dictionary_bot.configs import configs
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "dictionary_app.settings")
 django.setup()
 
-from dictionary_bot.models import Users, Dictionary
+import dictionary_bot.commands as commands
+
+from dictionary_bot.models import Users
 
 bot = Updater(token=configs['TOKEN'], use_context=True)
 
 
+class Commands_of_words(enum.Enum):
+
+    to_back = 0
+    add_word = 1
+    change_lang = 2
+    change_language = 3
+    remove_translation = 4
+    change_translation = 5
+    check_translation_type = 6
+    change_translation_word = 7
+
+
 def start(update: Update, context: CallbackContext):
-    user = Users.objects.get_or_create(
-        chat_id=update.message.chat_id,
-    )[0]
-
-    user.first_name = update.message.chat.first_name
-    user.last_name = update.message.chat.last_name
-    user.username = update.message.chat.username
-
-    user.save()
-
-    context.bot.send_message(
-        chat_id=update.message.chat_id,
-        text="Напишите слово для перевода"
-    )
+    commands.start(update, context)
 
 
-def new_word(update: Update, context: CallbackContext):
+def my_dictionary(update: Update, context: CallbackContext):
+    commands.my_dictionary(update, context)
+
+
+def button(update: Update, context: CallbackContext):
     query = update.callback_query
 
     query.answer()
 
-    command = query.data
+    command, *payload = query.data.split(':')
+
+    command = int(command)
 
     user = Users.objects.get(
         chat_id=query.message.chat_id,
     )
 
-    if command == 'add_word':
-        translator = Translator()
+    if command == Commands_of_words.add_word.value:
+        commands.add_word(update, context)
+    elif command == Commands_of_words.remove_translation.value:
+        commands.remove_translation(update, context)
+    elif command == Commands_of_words.change_lang.value:
+        commands.change_lang(update, context)
+    elif command == Commands_of_words.change_translation.value:
+        commands.change_translation(update, context)
+    elif command == Commands_of_words.check_translation_type.value:
+        commands.check_translation_type(update, context, payload)
+    elif command == Commands_of_words.change_translation_word.value:
+        commands.change_translation_word(update, context, payload)
+    elif command == Commands_of_words.change_language.value:
+        commands.change_language(update, context, payload)
+    elif command == Commands_of_words.to_back.value:
+        commands.to_back(update, context)
 
-        original_word = query.message.reply_to_message.text
-        translated_word = query.message.text
 
-        dictionary = Dictionary.objects.get_or_create(
-            user=user,
-            original_word=original_word,
-            original_word_lang_code=translator.detect(original_word).lang,
-            translated_word=translated_word,
-            translated_word_lang_code=translator.detect(translated_word).lang,
-        )[0]
-
-        if dictionary.created_at is None:
-            dictionary.created_at = tz.now()
-
-        dictionary.updated_at = tz.now()
-
-        dictionary.save()
-
-        query.edit_message_text(text=query.message.text)
-
-    elif command == 'my_dict':
-        user = Users.objects.get(
-            chat_id=query.message.chat_id
-        )
-
-        dictionary = Dictionary.objects.filter(
-            user=user,
-        )
+def add_custom_translation(update: Update, context: CallbackContext):
+    commands.add_custom_translation(update, context)
 
 
 def message_dict(update: Update, context: CallbackContext):
-    translator = Translator()
-
-    word = update.message.text
-
-    lang = translator.detect(word).lang
-
-    dest = 'ru'
-
-    if 'ru' in lang:
-        dest = 'en'
-    else:
-        dest = 'ru'
-
-    text_obj = translator.translate(word, dest=dest)
-
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton('Добавить слово и перевод в словарь', callback_data=f'add_word')]
-    ])
-
-    context.bot.send_message(
-        chat_id=update.message.chat_id,
-        text=text_obj.text,
-        reply_markup=keyboard,
-        reply_to_message_id=update.message.message_id,
-    )
+    commands.message_dict(update, context)
 
 
 def main():
     start_handler = CommandHandler('start', start)
-    new_word_handler = CallbackQueryHandler(new_word)
-    add_word_to_dict_handler = MessageHandler(Filters.text & ~Filters.command, message_dict)
+    dictionary_handler = CommandHandler('my_dictionary', my_dictionary)
+    button_handler = CallbackQueryHandler(button)
+    add_word_to_dict_handler = MessageHandler(Filters.text & ~Filters.command & ~Filters.reply, message_dict)
+    add_reduction_dict_handler = MessageHandler(Filters.text & Filters.reply & ~Filters.command, add_custom_translation)
 
+    bot.dispatcher.add_handler(add_reduction_dict_handler)
     bot.dispatcher.add_handler(add_word_to_dict_handler)
-    bot.dispatcher.add_handler(new_word_handler)
+    bot.dispatcher.add_handler(dictionary_handler)
+    bot.dispatcher.add_handler(button_handler)
     bot.dispatcher.add_handler(start_handler)
 
     bot.start_polling()

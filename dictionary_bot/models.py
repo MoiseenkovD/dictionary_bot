@@ -18,9 +18,9 @@ class Users(models.Model):
 class Dictionary(models.Model):
     user = models.ForeignKey('dictionary_bot.Users', on_delete=models.CASCADE, verbose_name='user')
     original_word = models.CharField(max_length=100, default=None, blank=True, null=True)
-    original_word_lang_code = models.CharField(max_length=5, choices=mch.TYPE_CHOICES)
+    original_word_lang_code = models.CharField(max_length=5)
     translated_word = models.CharField(max_length=100, default=None, blank=True, null=True)
-    translated_word_lang_code = models.CharField(max_length=5, choices=mch.TYPE_CHOICES)
+    translated_word_lang_code = models.CharField(max_length=5)
     context = models.CharField(max_length=600, default=None, blank=True, null=True)
     created_at = models.DateTimeField(default=None, blank=True, null=True)
     updated_at = models.DateTimeField(default=None, blank=True, null=True)
