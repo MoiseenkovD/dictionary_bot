@@ -101,10 +101,9 @@ def button(update: Update, context: CallbackContext):
         dictionary.save()
 
         query.edit_message_text(
-            text=f'<strong>Перевод: {query.message.text}</strong>',
+            text=f'<strong>{query.message.text}</strong>',
             parse_mode=ParseMode.HTML
         )
-
     elif command == 'remove_translation':
         query.message.reply_to_message.delete()
         query.message.delete()
@@ -135,37 +134,82 @@ def button(update: Update, context: CallbackContext):
     elif command == 'change_translation':
         translator = Translator()
 
-        word = query.message.reply_to_message.text
+        original_word = query.message.reply_to_message.text
 
-        lang_code = translator.detect(word).lang
+        lang_code = translator.detect(original_word).lang
 
         if lang_code == 'en':
             lang_code = 'ru'
         else:
             lang_code = 'en'
 
-        translated_word = translator.translate(word, dest=lang_code).extra_data['all-translations']
-
-        list_of_more_words = []
-
-        for translation_list in translated_word:
-            translation_type = translation_list[0]
-            list_of_more_words.append(f'\n — <strong>{translation_type}</strong>: —\n')
-            for word in translation_list[1]:
-                list_of_more_words.append(f'{word}')
-
-        words_str = '\n'.join(list_of_more_words)
+        translated_word = translator.translate(original_word, dest=lang_code).extra_data['all-translations']
 
         buttons = []
+
+        for i, translation_list in enumerate(translated_word):
+            translation_type = translation_list[0]
+            buttons.append([InlineKeyboardButton(translation_type.title(), callback_data=f'check_translation_type:{i}')])
+
         buttons.append([InlineKeyboardButton('Назад', callback_data=f'to_back')])
         keyboard = InlineKeyboardMarkup(buttons)
 
         query.edit_message_text(
-            text=words_str,
+            text=query.message.text,
             reply_markup=keyboard,
             parse_mode=ParseMode.HTML
         )
+    elif command == 'check_translation_type':
+        translator = Translator()
 
+        original_word = query.message.reply_to_message.text
+        print(original_word)
+
+        lang_code = translator.detect(original_word).lang
+
+        if lang_code == 'en':
+            lang_code = 'ru'
+        else:
+            lang_code = 'en'
+
+        translated_word = translator.translate(original_word, dest=lang_code).extra_data['all-translations']
+
+        word_type_index = int(payload[0])
+
+        buttons = []
+
+        for i, word in enumerate(translated_word[word_type_index][1]):
+            buttons.append([InlineKeyboardButton(word.title(), callback_data=f'change_translation_word:{word_type_index}:{i}')])
+
+        buttons.append([InlineKeyboardButton('Назад', callback_data=f'to_back')])
+        keyboard_words = InlineKeyboardMarkup(buttons)
+
+        query.edit_message_text(
+            text=query.message.text,
+            reply_markup=keyboard_words,
+        )
+    elif command == 'change_translation_word':
+        translator = Translator()
+
+        original_word = query.message.reply_to_message.text
+
+        lang_code = translator.detect(original_word).lang
+
+        if lang_code == 'en':
+            lang_code = 'ru'
+        else:
+            lang_code = 'en'
+
+        translated_word = translator.translate(original_word, dest=lang_code).extra_data['all-translations']
+
+        type_of_word = int(payload[0])
+
+        index_of_word = int(payload[1])
+
+        query.edit_message_text(
+            text=translated_word[type_of_word][1][index_of_word],
+            reply_markup=get_main_word_keyboard('')
+        )
     elif command == 'change_language':
         translator = Translator()
 
