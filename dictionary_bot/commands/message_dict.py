@@ -1,6 +1,8 @@
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 
+from dictionary_bot.bot import Commands_of_words
+from dictionary_bot.models import Dictionary, Users
 from dictionary_bot.utils import get_main_word_keyboard
 
 from googletrans import Translator

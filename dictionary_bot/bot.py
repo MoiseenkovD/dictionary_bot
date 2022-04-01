@@ -1,6 +1,6 @@
 import enum
 
-from telegram import Update
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext, CommandHandler, Updater, CallbackQueryHandler, MessageHandler, Filters
 
 import os, django
@@ -12,7 +12,7 @@ django.setup()
 
 import dictionary_bot.commands as commands
 
-from dictionary_bot.models import Users
+from dictionary_bot.models import Users, Dictionary
 
 bot = Updater(token=configs['TOKEN'], use_context=True)
 
@@ -27,6 +27,9 @@ class Commands_of_words(enum.Enum):
     change_translation = 5
     check_translation_type = 6
     change_translation_word = 7
+    remove_word_from_dict = 8
+    update_meaning = 9
+    examples = 10
 
 
 def start(update: Update, context: CallbackContext):
@@ -64,8 +67,53 @@ def button(update: Update, context: CallbackContext):
         commands.change_translation_word(update, context, payload)
     elif command == Commands_of_words.change_language.value:
         commands.change_language(update, context, payload)
+    elif command == Commands_of_words.remove_word_from_dict.value:
+        commands.remove_word_from_dict(update, context)
+    elif command == Commands_of_words.update_meaning.value:
+        commands.update_meaning(update, context)
+    elif command == Commands_of_words.examples.value:
+        commands.examples(update, context, payload)
     elif command == Commands_of_words.to_back.value:
         commands.to_back(update, context)
+
+
+def editing(update: Update, context: CallbackContext):
+
+    user = Users.objects.get(
+        chat_id=update.message.chat_id
+    )
+
+    command = update.message.text
+
+    command, *payload = command.split('_')
+
+    word_id = int(payload[0])
+
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(
+                '🗑 Удалить',
+                callback_data=f'{Commands_of_words.remove_word_from_dict.value}:{payload[0]}'
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                '✏️ Обновить',
+                callback_data=f'{Commands_of_words.update_meaning.value}:{payload[0]}'
+            )
+        ]
+    ])
+
+    word = Dictionary.objects.filter(
+        user=user,
+        id=word_id
+    )[0]
+
+    context.bot.send_message(
+        chat_id=update.message.chat_id,
+        text=f'{word.original_word} - {word.translated_word}',
+        reply_markup=keyboard
+    )
 
 
 def add_custom_translation(update: Update, context: CallbackContext):
@@ -73,7 +121,33 @@ def add_custom_translation(update: Update, context: CallbackContext):
 
 
 def message_dict(update: Update, context: CallbackContext):
-    commands.message_dict(update, context)
+
+    user = Users.objects.get(
+        chat_id=update.message.chat_id
+    )
+
+    if user.pending_state is None:
+        commands.message_dict(update, context)
+    else:
+        command, *payload = user.pending_state.split(':')
+
+        if command == 'UPDATE_TRANSLATION':
+            word_id = payload[0]
+            new_translation = update.message.text
+            word = Dictionary.objects.filter(
+                user=user,
+                id=word_id
+            )[0]
+            word.translated_word = new_translation
+            word.save()
+
+            user.pending_state = None
+            user.save()
+
+            context.bot.send_message(
+                chat_id=update.message.chat_id,
+                text=f'✅ Перевод успешно сохранен'
+            )
 
 
 def main():
@@ -82,7 +156,9 @@ def main():
     button_handler = CallbackQueryHandler(button)
     add_word_to_dict_handler = MessageHandler(Filters.text & ~Filters.command & ~Filters.reply, message_dict)
     add_reduction_dict_handler = MessageHandler(Filters.text & Filters.reply & ~Filters.command, add_custom_translation)
+    editing_word = MessageHandler(Filters.regex('\/edit_\d+'), editing)
 
+    bot.dispatcher.add_handler(editing_word)
     bot.dispatcher.add_handler(add_reduction_dict_handler)
     bot.dispatcher.add_handler(add_word_to_dict_handler)
     bot.dispatcher.add_handler(dictionary_handler)

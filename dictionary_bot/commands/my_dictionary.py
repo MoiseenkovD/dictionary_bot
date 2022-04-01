@@ -1,6 +1,7 @@
-from telegram import Update, ParseMode
+from telegram import Update, ParseMode, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 
+from dictionary_bot.bot import Commands_of_words
 from dictionary_bot.models import Users, Dictionary
 
 
@@ -18,7 +19,7 @@ def my_dictionary(update: Update, context: CallbackContext):
     for word in dictionary:
         original_word = word.original_word
         translated_word = word.translated_word
-        words.append(f'{original_word} - {translated_word} ')
+        words.append(f'{original_word} - {translated_word} /edit_{word.id}')
 
     words_str = '\n'.join(words)
 

@@ -10,3 +10,6 @@ from dictionary_bot.commands.change_translation_word import *
 from dictionary_bot.commands.change_language import *
 from dictionary_bot.commands.to_back import *
 from dictionary_bot.commands.add_custom_translation import *
+from dictionary_bot.commands.remove_word_from_dict import *
+from dictionary_bot.commands.update_meaning import *
+from dictionary_bot.commands.examples import *

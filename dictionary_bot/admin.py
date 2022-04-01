@@ -10,7 +10,8 @@ class UsersAdmin(admin.ModelAdmin):
         'first_name',
         'last_name',
         'username',
-        'chat_id',
+        'pending_state',
+        'chat_id',       
     )
 
 

@@ -13,6 +13,12 @@ def get_main_word_keyboard(change_lang_code):
             ],
             [
                 InlineKeyboardButton(
+                    '🧐 Добавить/Посмотреть контекст',
+                    callback_data=f'{Commands_of_words.examples.value}'
+                )
+            ],
+            [
+                InlineKeyboardButton(
                     '👀 Посмотреть другие переводы',
                     callback_data=f'{Commands_of_words.change_translation.value}:{change_lang_code}'
                 )
