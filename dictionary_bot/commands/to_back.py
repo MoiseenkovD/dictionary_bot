@@ -3,6 +3,7 @@ from telegram.ext import CallbackContext
 
 from googletrans import Translator
 
+from dictionary_bot.models import Users
 from dictionary_bot.utils import get_main_word_keyboard
 
 translator = Translator()
@@ -15,18 +16,28 @@ def to_back(update: Update, context: CallbackContext):
 
     command, *payload = query.data.split(':')
 
+    user = Users.objects.get(
+        chat_id=query.message.chat_id
+    )
+
     word = query.message.reply_to_message.text
 
-    lang = translator.detect(word).lang
+    lang_code = translator.detect(word).lang
 
-    dest = 'ru'
+    # dest = 'ru'
+    #
+    # if 'ru' in lang:
+    #     dest = 'en'
+    # else:
+    #     dest = 'ru'
+    #
 
-    if 'ru' in lang:
-        dest = 'en'
+    if lang_code == user.native_language:
+        lang_code = user.target_language
     else:
-        dest = 'ru'
+        lang_code = user.native_language
 
-    translated_word = translator.translate(word, dest=dest).text
+    translated_word = translator.translate(word, dest=lang_code).text
 
     query.edit_message_text(
         text=translated_word,

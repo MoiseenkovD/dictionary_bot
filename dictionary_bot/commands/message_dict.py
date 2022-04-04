@@ -2,6 +2,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 
 from dictionary_bot.bot import Commands_of_words
+from dictionary_bot.commands import choose_target_lang
 from dictionary_bot.models import Dictionary, Users
 from dictionary_bot.utils import get_main_word_keyboard
 
@@ -11,18 +12,21 @@ translator = Translator()
 
 
 def message_dict(update: Update, context: CallbackContext):
+
+    user = Users.objects.get(
+        chat_id=update.message.chat_id
+    )
+
     word = update.message.text
 
     lang = translator.detect(word).lang
 
-    dest = 'ru'
-
-    if 'ru' in lang:
-        dest = 'en'
+    if lang == user.native_language:
+        lang = user.target_language
     else:
-        dest = 'ru'
+        lang = user.native_language
 
-    text_obj = translator.translate(word, dest=dest)
+    text_obj = translator.translate(word, dest=lang)
 
     context.bot.send_message(
         chat_id=update.message.chat_id,

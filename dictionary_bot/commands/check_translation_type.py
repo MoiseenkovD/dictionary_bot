@@ -2,11 +2,12 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ParseMo
 from telegram.ext import CallbackContext
 
 from dictionary_bot.bot import Commands_of_words
-from dictionary_bot.constans import SUPPORTED_LANGUAGES
+
 
 from googletrans import Translator
 
 from dictionary_bot.helpers import chunks
+from dictionary_bot.models import Users
 
 translator = Translator()
 
@@ -19,14 +20,24 @@ def check_translation_type(update: Update, context: CallbackContext, payload):
 
     command, *payload = query.data.split(':')
 
+    user = Users.objects.get(
+        chat_id=query.message.chat_id
+    )
+
     original_word = query.message.reply_to_message.text
 
     lang_code = translator.detect(original_word).lang
 
-    if lang_code == 'en':
-        lang_code = 'ru'
+
+    # if lang_code == 'en':
+    #     lang_code = 'ru'
+    # else:
+    #     lang_code = 'en'
+
+    if lang_code == user.native_language:
+        lang_code = user.target_language
     else:
-        lang_code = 'en'
+        lang_code = user.native_language
 
     translated_word = translator.translate(original_word, dest=lang_code).extra_data['all-translations']
 

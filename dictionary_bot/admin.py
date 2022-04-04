@@ -11,6 +11,8 @@ class UsersAdmin(admin.ModelAdmin):
         'last_name',
         'username',
         'pending_state',
+        'native_language',
+        'target_language',
         'chat_id',       
     )
 

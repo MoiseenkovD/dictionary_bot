@@ -2,9 +2,12 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 
 from dictionary_bot.bot import Commands_of_words
-from dictionary_bot.constans import SUPPORTED_LANGUAGES
+from dictionary_bot.constans import START_SUPPORTED_LANGUAGES
 
 from googletrans import Translator
+
+from dictionary_bot.helpers import chunks
+from dictionary_bot.models import Users
 
 translator = Translator()
 
@@ -14,24 +17,32 @@ def change_lang(update: Update, context: CallbackContext):
 
     query.answer()
 
-    original_word = query.message.reply_to_message.text
-    translated_original_language = translator.detect(original_word).lang
+    user = Users.objects.get(
+        chat_id=query.message.chat_id
+    )
 
-    translated_word = query.message.text
-    translated_language = translator.detect(translated_word).lang
+    langs_for_keyboard_filter_native = filter(
+        lambda lang: lang["code"] != user.native_language,
+        START_SUPPORTED_LANGUAGES
+    )
 
-    lang_buttons = []
+    langs_for_keyboard_filter_target = filter(
+        lambda lang: lang["code"] != user.target_language,
+        langs_for_keyboard_filter_native
+    )
 
-    for lang in SUPPORTED_LANGUAGES:
-        if translated_language == lang or translated_original_language == lang:
-            continue
-        lang_buttons.append([InlineKeyboardButton(lang, callback_data=f'{Commands_of_words.change_language.value}:{lang}')])
+    keyboard_buttons = list(map(lambda lang: InlineKeyboardButton(
+        lang['name'],
+        callback_data=f'{Commands_of_words.change_language.value}:{lang["code"]}'
+    ), langs_for_keyboard_filter_target))
 
-    lang_buttons.append([InlineKeyboardButton('⬅️ Назад', callback_data=f'{Commands_of_words.to_back.value}')])
+    keyboard_buttons = chunks(keyboard_buttons, 2)
 
-    lang_keyboard = InlineKeyboardMarkup(lang_buttons)
+    keyboard_buttons.append([InlineKeyboardButton('⬅️ Назад', callback_data=f'{Commands_of_words.to_back.value}')])
+
+    keyboard = InlineKeyboardMarkup(keyboard_buttons)
 
     query.edit_message_text(
         text=query.message.text,
-        reply_markup=lang_keyboard
+        reply_markup=keyboard
     )

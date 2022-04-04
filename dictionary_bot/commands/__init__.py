@@ -13,3 +13,5 @@ from dictionary_bot.commands.add_custom_translation import *
 from dictionary_bot.commands.remove_word_from_dict import *
 from dictionary_bot.commands.update_meaning import *
 from dictionary_bot.commands.examples import *
+from dictionary_bot.commands.choose_native_lang import *
+from dictionary_bot.commands.choose_target_lang import *

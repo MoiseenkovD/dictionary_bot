@@ -8,6 +8,8 @@ class Users(models.Model):
     last_name = models.CharField(max_length=100, default=None, blank=True, null=True)
     username = models.CharField(max_length=100, default=None, blank=True, null=True)
     pending_state = models.CharField(max_length=30, default=None, blank=True, null=True)
+    native_language = models.CharField(max_length=10, default=None, blank=True, null=True)
+    target_language = models.CharField(max_length=10, default=None, blank=True, null=True)
     chat_id = models.CharField(max_length=20)
 
     class Meta:

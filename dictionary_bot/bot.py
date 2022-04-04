@@ -30,6 +30,8 @@ class Commands_of_words(enum.Enum):
     remove_word_from_dict = 8
     update_meaning = 9
     examples = 10
+    choose_native_lang = 11
+    choose_target_lang = 12
 
 
 def start(update: Update, context: CallbackContext):
@@ -75,6 +77,10 @@ def button(update: Update, context: CallbackContext):
         commands.examples(update, context, payload)
     elif command == Commands_of_words.to_back.value:
         commands.to_back(update, context)
+    elif command == Commands_of_words.choose_native_lang.value:
+        commands.choose_native_lang(update, context)
+    elif command == Commands_of_words.choose_target_lang.value:
+        commands.choose_target_lang(update, context)
 
 
 def editing(update: Update, context: CallbackContext):
@@ -125,6 +131,10 @@ def message_dict(update: Update, context: CallbackContext):
     user = Users.objects.get(
         chat_id=update.message.chat_id
     )
+
+    if user.target_language is None:
+        commands.choose_native_lang(update, context)
+        return
 
     if user.pending_state is None:
         commands.message_dict(update, context)
