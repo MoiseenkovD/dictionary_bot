@@ -1,3 +1,6 @@
+import sys
+sys.path.append('../')
+
 import enum
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
