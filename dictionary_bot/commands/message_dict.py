@@ -19,14 +19,15 @@ def message_dict(update: Update, context: CallbackContext):
 
     word = update.message.text
 
-    lang = translator.detect(word).lang
+    src_lang = translator.detect(word).lang
+    dest_lang = user.target_language
 
-    if lang == user.native_language:
-        lang = user.target_language
+    if src_lang == user.native_language:
+        dest_lang = user.target_language
     else:
-        lang = user.native_language
+        dest_lang = user.native_language
 
-    text_obj = translator.translate(word, dest=lang)
+    text_obj = translator.translate(word, src=src_lang, dest=dest_lang)
 
     context.bot.send_message(
         chat_id=update.message.chat_id,
