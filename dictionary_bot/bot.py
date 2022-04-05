@@ -41,6 +41,10 @@ def start(update: Update, context: CallbackContext):
     commands.start(update, context)
 
 
+def change_native_and_target_language(update: Update, context: CallbackContext):
+    commands.change_native_and_target_language(update, context)
+
+
 def my_dictionary(update: Update, context: CallbackContext):
     commands.my_dictionary(update, context)
 
@@ -136,7 +140,7 @@ def message_dict(update: Update, context: CallbackContext):
     )
 
     if user.target_language is None:
-        commands.choose_native_lang(update, context)
+        commands.choose_target_lang(update, context)
         return
 
     if user.pending_state is None:
@@ -166,6 +170,7 @@ def message_dict(update: Update, context: CallbackContext):
 def main():
     start_handler = CommandHandler('start', start)
     dictionary_handler = CommandHandler('my_dictionary', my_dictionary)
+    language_handler = CommandHandler('change_languages', change_native_and_target_language)
     button_handler = CallbackQueryHandler(button)
     add_word_to_dict_handler = MessageHandler(Filters.text & ~Filters.command & ~Filters.reply, message_dict)
     add_reduction_dict_handler = MessageHandler(Filters.text & Filters.reply & ~Filters.command, add_custom_translation)
@@ -174,6 +179,7 @@ def main():
     bot.dispatcher.add_handler(editing_word)
     bot.dispatcher.add_handler(add_reduction_dict_handler)
     bot.dispatcher.add_handler(add_word_to_dict_handler)
+    bot.dispatcher.add_handler(language_handler)
     bot.dispatcher.add_handler(dictionary_handler)
     bot.dispatcher.add_handler(button_handler)
     bot.dispatcher.add_handler(start_handler)

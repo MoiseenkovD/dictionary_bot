@@ -15,3 +15,4 @@ from dictionary_bot.commands.update_meaning import *
 from dictionary_bot.commands.examples import *
 from dictionary_bot.commands.choose_native_lang import *
 from dictionary_bot.commands.choose_target_lang import *
+from dictionary_bot.commands.change_native_and_target_language import *
