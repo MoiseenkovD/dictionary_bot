@@ -24,20 +24,31 @@ def change_translation(update: Update, context: CallbackContext):
 
     original_word = query.message.reply_to_message.text
 
-    lang_code = translator.detect(original_word).lang
+    # lang_code = translator.detect(original_word).lang
+    #
+    # # if lang_code == 'en':
+    # #     lang_code = 'ru'
+    # # else:
+    # #     lang_code = 'en'
 
-    # if lang_code == 'en':
-    #     lang_code = 'ru'
-    # else:
-    #     lang_code = 'en'
+    lang_code = translator.detect(original_word).lang
+    dest_lang = user.target_language
 
     if lang_code == user.native_language:
-        lang_code = user.target_language
-    else:
+        dest_lang = user.target_language
+    elif user.native_language in lang_code:
+        dest_lang = user.target_language
         lang_code = user.native_language
+    else:
+        dest_lang = user.native_language
+
+    # if lang_code == user.native_language:
+    #     lang_code = user.target_language
+    # else:
+    #     lang_code = user.native_language
 
     try:
-        translated_word = translator.translate(original_word, dest=lang_code).extra_data['all-translations']
+        translated_word = translator.translate(original_word, src=lang_code, dest=dest_lang).extra_data['all-translations']
 
         buttons = []
 

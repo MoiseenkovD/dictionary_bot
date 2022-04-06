@@ -32,12 +32,22 @@ def to_back(update: Update, context: CallbackContext):
     #     dest = 'ru'
     #
 
-    if lang_code == user.native_language:
-        lang_code = user.target_language
-    else:
-        lang_code = user.native_language
+    # if lang_code == user.native_language:
+    #     lang_code = user.target_language
+    # else:
+    #     lang_code = user.native_language
+    #
+    # translated_word = translator.translate(word, dest=lang_code).text
 
-    translated_word = translator.translate(word, dest=lang_code).text
+    if lang_code == user.native_language:
+        dest_lang = user.target_language
+    elif user.native_language in lang_code:
+        dest_lang = user.target_language
+        lang_code = user.native_language
+    else:
+        dest_lang = user.native_language
+
+    translated_word = translator.translate(word, src=lang_code, dest=dest_lang).text
 
     query.edit_message_text(
         text=translated_word,

@@ -30,12 +30,22 @@ def change_translation_word(update: Update, context: CallbackContext, payload):
     # else:
     #     lang_code = 'en'
 
-    if lang_code == user.native_language:
-        lang_code = user.target_language
-    else:
-        lang_code = user.native_language
+    # if lang_code == user.native_language:
+    #     lang_code = user.target_language
+    # else:
+    #     lang_code = user.native_language
 
-    translated_word = translator.translate(original_word, dest=lang_code).extra_data['all-translations']
+    dest_lang = user.target_language
+
+    if lang_code == user.native_language:
+        dest_lang = user.target_language
+    elif user.native_language in lang_code:
+        dest_lang = user.target_language
+        lang_code = user.native_language
+    else:
+        dest_lang = user.native_language
+
+    translated_word = translator.translate(original_word, src=lang_code, dest=dest_lang).extra_data['all-translations']
 
     type_of_word = int(payload[0])
 

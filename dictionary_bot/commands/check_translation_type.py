@@ -28,18 +28,27 @@ def check_translation_type(update: Update, context: CallbackContext, payload):
 
     lang_code = translator.detect(original_word).lang
 
-
     # if lang_code == 'en':
     #     lang_code = 'ru'
     # else:
     #     lang_code = 'en'
 
-    if lang_code == user.native_language:
-        lang_code = user.target_language
-    else:
-        lang_code = user.native_language
+    # if lang_code == user.native_language:
+    #     lang_code = user.target_language
+    # else:
+    #     lang_code = user.native_language
+    #
+    # translated_word = translator.translate(original_word, dest=lang_code).extra_data['all-translations']
 
-    translated_word = translator.translate(original_word, dest=lang_code).extra_data['all-translations']
+    if lang_code == user.native_language:
+        dest_lang = user.target_language
+    elif user.native_language in lang_code:
+        dest_lang = user.target_language
+        lang_code = user.native_language
+    else:
+        dest_lang = user.native_language
+
+    translated_word = translator.translate(original_word, src=lang_code, dest=dest_lang).extra_data['all-translations']
 
     word_type_index = int(payload[0])
 
