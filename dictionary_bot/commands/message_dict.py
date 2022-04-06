@@ -24,6 +24,9 @@ def message_dict(update: Update, context: CallbackContext):
 
     if src_lang == user.native_language:
         dest_lang = user.target_language
+    elif user.native_language in src_lang:
+        dest_lang = user.target_language
+        src_lang = user.native_language
     else:
         dest_lang = user.native_language
 
